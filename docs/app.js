@@ -5,6 +5,7 @@
   const DEMO = !GAS_URL && !!window.BC_SEED; // プレビュー用。公開サイトには BC_SEED を置かない
   const PW_KEY = 'bc-students-pw';
   const DATA_KEY = 'bc-students-data';
+  const PUBLIC_KEY = 'bc-students-public';
   const app = document.getElementById('app');
 
   const THEMES = {
@@ -69,6 +70,22 @@
     const pages = {};
     Object.keys(S.pages).forEach(k => { pages[k] = toObjs(S.pages[k], pageHead); });
     return { settings, top: toObjs(S.top.slice(1), S.top[0]), pages };
+  }
+
+  // ログイン画面用のロゴ・タイトル（パスワード不要）
+  function cachedPublic() {
+    try { return JSON.parse(store.get(PUBLIC_KEY) || 'null') || {}; } catch (_) { return {}; }
+  }
+  async function fetchPublic() {
+    try {
+      const res = await fetch(GAS_URL + '?action=public');
+      const json = await res.json();
+      if (json.ok) {
+        store.set(PUBLIC_KEY, JSON.stringify(json.settings));
+        return json.settings;
+      }
+    } catch (_) {}
+    return null;
   }
 
   async function fetchData(password) {
@@ -181,6 +198,7 @@
   }
 
   function renderLogin(settings, error) {
+    settings = Object.assign(cachedPublic(), settings || {});
     document.title = str(settings['サイト名']) || 'Be Color 生徒専用ページ';
     app.innerHTML = hero(settings) + `
       <form class="login" autocomplete="on">
@@ -193,6 +211,15 @@
       </form>`;
     const form = app.querySelector('form');
     form.password.focus();
+    if (!DEMO && !error) {
+      // 最新のロゴ・タイトルを取得して、入力中の内容はそのままにヘッダーだけ差し替える
+      fetchPublic().then(s => {
+        if (!s || !form.isConnected) return;
+        app.querySelector('.hero').outerHTML = hero(s);
+        form.querySelector('p').textContent = str(s['ログイン案内文']) || '講師より共有された ログインパスワードを入力してください';
+        document.title = str(s['サイト名']) || 'Be Color 生徒専用ページ';
+      });
+    }
     form.addEventListener('submit', async e => {
       e.preventDefault();
       const pw = form.password.value;
@@ -242,7 +269,7 @@
       store.del(DATA_KEY);
       state.data = null;
       history.replaceState(null, '', location.pathname);
-      renderLogin({});
+      renderLogin(cachedPublic());
     }
   });
   window.addEventListener('hashchange', route);
@@ -262,7 +289,7 @@
     try { cached = JSON.parse(store.get(DATA_KEY) || 'null'); } catch (_) {}
 
     if (!pw) {
-      renderLogin(cached ? cached.settings : {});
+      renderLogin(cached ? cached.settings : cachedPublic());
       return;
     }
     // 前回のデータですぐ表示 → 裏で最新を取得して差し替え
