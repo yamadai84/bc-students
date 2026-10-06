@@ -1,4 +1,3 @@
-// GAS をウェブアプリとしてデプロイしたときの URL（https://script.google.com/macros/s/.../exec）を貼り付けてください。
 window.BC_CONFIG = {
-  GAS_URL: 'GAS_URL: 'https://script.google.com/macros/s/xxxxx/exec',',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxGuOo3CecJz9cUVNiYrijBhY-rGYB3Nt-xBTB9fzXcTMxDHaWivYi-AjQXS6G9eJ7M/exec',
 };
